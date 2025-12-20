@@ -1,0 +1,19 @@
+meta {
+  name: Get User By ID
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8080/api/users/{{userId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  userId: {{userId}}
+  token: {{token}}
+}

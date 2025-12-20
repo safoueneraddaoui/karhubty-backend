@@ -1,0 +1,30 @@
+meta {
+  name: Update Profile
+  type: http
+  seq: 6
+}
+
+put {
+  url: http://localhost:8080/api/users/{{userId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "firstName": "Updated First Name",
+    "lastName": "Updated Last Name",
+    "phone": "0611111111",
+    "city": "Marrakech",
+    "address": "Updated Address"
+  }
+}
+
+vars:pre-request {
+  userId: {{userId}}
+  token: {{token}}
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Register Agent
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/api/auth/register/agent
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "agent@agent.com",
+    "password": "Agent123!",
+    "firstName": "John",
+    "lastName": "Agent",
+    "phone": "0687654321",
+    "agencyName": "Premium Cars Agency",
+    "agencyAddress": "123 Business Street",
+    "city": "Fez",
+    "approvalOfAgency": "pending_approval"
+  }
+}

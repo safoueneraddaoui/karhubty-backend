@@ -1,0 +1,19 @@
+meta {
+  name: Get User Rentals
+  type: http
+  seq: 15
+}
+
+get {
+  url: http://localhost:8080/api/rentals/user/{{userId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  userId: {{userId}}
+  token: {{token}}
+}

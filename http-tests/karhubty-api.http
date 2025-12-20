@@ -1,0 +1,273 @@
+### Register User
+POST http://localhost:3000/api/auth/register/user
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "firstName": "John",
+  "lastName": "Doe",
+  "phone": "1234567890",
+  "city": "Casablanca"
+}
+
+### Register Agent
+POST http://localhost:3000/api/auth/register/agent
+Content-Type: application/json
+
+{
+  "email": "agent@example.com",
+  "password": "password123",
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "phone": "0987654321",
+  "agencyName": "Premium Cars",
+  "agencyAddress": "123 Business St",
+  "city": "Fez",
+  "approvalOfAgency": "document_url"
+}
+
+### Login
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+
+### Get All Cars (Public)
+GET http://localhost:3000/api/cars
+
+### Get Featured Cars
+GET http://localhost:3000/api/cars/featured
+
+### Search Cars
+GET http://localhost:3000/api/cars/search?q=toyota
+
+### Get Cars by Category
+GET http://localhost:3000/api/cars/category/SUV
+
+### Get Car Details
+GET http://localhost:3000/api/cars/1
+
+### Check Car Availability
+POST http://localhost:3000/api/cars/1/check-availability
+Content-Type: application/json
+
+{
+  "startDate": "2025-12-25",
+  "endDate": "2025-12-28"
+}
+
+### Get User Profile (Protected)
+GET http://localhost:3000/api/users/profile
+Authorization: Bearer <JWT_TOKEN_HERE>
+
+### Get All Users (Admin Only)
+GET http://localhost:3000/api/users
+Authorization: Bearer <JWT_TOKEN_HERE>
+
+### Get User by ID
+GET http://localhost:3000/api/users/1
+Authorization: Bearer <JWT_TOKEN_HERE>
+
+### Update User Profile
+PUT http://localhost:3000/api/users/1
+Authorization: Bearer <JWT_TOKEN_HERE>
+Content-Type: application/json
+
+{
+  "firstName": "John Updated",
+  "lastName": "Doe",
+  "phone": "1234567890",
+  "address": "123 Main St",
+  "city": "Casablanca"
+}
+
+### Change Password
+PUT http://localhost:3000/api/users/1/password
+Authorization: Bearer <JWT_TOKEN_HERE>
+Content-Type: application/json
+
+{
+  "oldPassword": "password123",
+  "newPassword": "newpassword456"
+}
+
+### Get User Rentals
+GET http://localhost:3000/api/users/1/rentals
+Authorization: Bearer <JWT_TOKEN_HERE>
+
+### Get User Reviews
+GET http://localhost:3000/api/users/1/reviews
+Authorization: Bearer <JWT_TOKEN_HERE>
+
+### Activate User (Admin)
+PUT http://localhost:3000/api/users/1/activate
+Authorization: Bearer <ADMIN_TOKEN_HERE>
+
+### Deactivate User (Admin)
+PUT http://localhost:3000/api/users/1/deactivate
+Authorization: Bearer <ADMIN_TOKEN_HERE>
+
+### Delete User (Admin)
+DELETE http://localhost:3000/api/users/1
+Authorization: Bearer <ADMIN_TOKEN_HERE>
+
+### Create Rental (User Only)
+POST http://localhost:3000/api/rentals
+Authorization: Bearer <USER_TOKEN_HERE>
+Content-Type: application/json
+
+{
+  "carId": 1,
+  "startDate": "2025-12-25",
+  "endDate": "2025-12-28"
+}
+
+### Calculate Rental Price
+POST http://localhost:3000/api/rentals/calculate-price
+Content-Type: application/json
+
+{
+  "carId": 1,
+  "startDate": "2025-12-25",
+  "endDate": "2025-12-28"
+}
+
+### Check Rental Overlap
+POST http://localhost:3000/api/rentals/check-overlap/1
+Authorization: Bearer <JWT_TOKEN_HERE>
+Content-Type: application/json
+
+{
+  "startDate": "2025-12-25",
+  "endDate": "2025-12-28"
+}
+
+### Get User Rentals
+GET http://localhost:3000/api/rentals/user/1
+Authorization: Bearer <JWT_TOKEN_HERE>
+
+### Get Agent Rentals
+GET http://localhost:3000/api/rentals/agent/1
+Authorization: Bearer <AGENT_TOKEN_HERE>
+
+### Get Rental Statistics
+GET http://localhost:3000/api/rentals/stats
+Authorization: Bearer <JWT_TOKEN_HERE>
+
+### Get All Rentals (Admin)
+GET http://localhost:3000/api/rentals
+Authorization: Bearer <ADMIN_TOKEN_HERE>
+
+### Get Rental by ID
+GET http://localhost:3000/api/rentals/1
+Authorization: Bearer <JWT_TOKEN_HERE>
+
+### Approve Rental (Agent Only)
+PUT http://localhost:3000/api/rentals/1/approve
+Authorization: Bearer <AGENT_TOKEN_HERE>
+
+### Reject Rental (Agent Only)
+PUT http://localhost:3000/api/rentals/1/reject
+Authorization: Bearer <AGENT_TOKEN_HERE>
+
+### Cancel Rental (User Only)
+PUT http://localhost:3000/api/rentals/1/cancel
+Authorization: Bearer <USER_TOKEN_HERE>
+
+### Complete Rental
+PUT http://localhost:3000/api/rentals/1/complete
+Authorization: Bearer <JWT_TOKEN_HERE>
+
+### Get Agent's Cars
+GET http://localhost:3000/api/cars/agent/1
+Authorization: Bearer <JWT_TOKEN_HERE>
+
+### Create Car (Agent Only)
+POST http://localhost:3000/api/cars
+Authorization: Bearer <AGENT_TOKEN_HERE>
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="brand"
+
+Toyota
+------WebKitFormBoundary
+Content-Disposition: form-data; name="model"
+
+Camry
+------WebKitFormBoundary
+Content-Disposition: form-data; name="year"
+
+2023
+------WebKitFormBoundary
+Content-Disposition: form-data; name="color"
+
+Black
+------WebKitFormBoundary
+Content-Disposition: form-data; name="licensePlate"
+
+ABC-1234
+------WebKitFormBoundary
+Content-Disposition: form-data; name="fuelType"
+
+Diesel
+------WebKitFormBoundary
+Content-Disposition: form-data; name="transmission"
+
+Automatic
+------WebKitFormBoundary
+Content-Disposition: form-data; name="seats"
+
+5
+------WebKitFormBoundary
+Content-Disposition: form-data; name="pricePerDay"
+
+100
+------WebKitFormBoundary
+Content-Disposition: form-data; name="guaranteePrice"
+
+500
+------WebKitFormBoundary
+Content-Disposition: form-data; name="category"
+
+Sedan
+------WebKitFormBoundary
+Content-Disposition: form-data; name="features"
+
+Air Conditioning, Power Windows
+------WebKitFormBoundary
+Content-Disposition: form-data; name="images"; filename="car.jpg"
+Content-Type: image/jpeg
+
+<binary image data>
+------WebKitFormBoundary--
+
+### Update Car (Agent Only)
+PUT http://localhost:3000/api/cars/1
+Authorization: Bearer <AGENT_TOKEN_HERE>
+Content-Type: application/json
+
+{
+  "brand": "Toyota",
+  "model": "Camry",
+  "year": 2024,
+  "color": "White",
+  "pricePerDay": 120
+}
+
+### Set Car Availability
+PUT http://localhost:3000/api/cars/1/availability
+Authorization: Bearer <AGENT_TOKEN_HERE>
+Content-Type: application/json
+
+{
+  "isAvailable": true
+}
+
+### Delete Car (Agent Only)
+DELETE http://localhost:3000/api/cars/1
+Authorization: Bearer <AGENT_TOKEN_HERE>

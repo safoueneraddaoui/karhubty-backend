@@ -1,0 +1,18 @@
+meta {
+  name: Get Rental Stats
+  type: http
+  seq: 16
+}
+
+get {
+  url: http://localhost:8080/api/rentals/stats
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  token: {{token}}
+}

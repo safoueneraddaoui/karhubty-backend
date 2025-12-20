@@ -1,0 +1,16 @@
+meta {
+  name: Get All Cars
+  type: http
+  seq: 8
+}
+
+get {
+  url: http://localhost:8080/api/cars
+  auth: none
+}
+
+params {
+  ~category: SUV
+  ~minPrice: 100
+  ~maxPrice: 500
+}

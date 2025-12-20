@@ -1,0 +1,27 @@
+meta {
+  name: Create Rental
+  type: http
+  seq: 14
+}
+
+post {
+  url: http://localhost:8080/api/rentals
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "carId": 1,
+    "startDate": "2025-12-25",
+    "endDate": "2025-12-28"
+  }
+}
+
+vars:pre-request {
+  token: {{token}}
+}

@@ -1,0 +1,18 @@
+meta {
+  name: Check Car Availability
+  type: http
+  seq: 12
+}
+
+post {
+  url: http://localhost:8080/api/cars/1/check-availability
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "startDate": "2025-12-25",
+    "endDate": "2025-12-28"
+  }
+}

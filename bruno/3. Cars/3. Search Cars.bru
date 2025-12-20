@@ -1,0 +1,14 @@
+meta {
+  name: Search Cars
+  type: http
+  seq: 10
+}
+
+get {
+  url: http://localhost:8080/api/cars/search
+  auth: none
+}
+
+params {
+  q: toyota
+}

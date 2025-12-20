@@ -1,0 +1,28 @@
+meta {
+  name: Login User
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "testuser@example.com",
+    "password": "Test123!"
+  }
+}
+
+script:post-response {
+  // Store token for use in other requests
+  if (res.status === 200) {
+    const data = res.body;
+    bru.setEnvVar('token', data.user.token);
+    bru.setEnvVar('userId', data.user.userId);
+    console.log('✅ Login successful! Token stored.');
+  }
+}
