@@ -1,0 +1,18 @@
+meta {
+  name: Reject Agent
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:8080/api/admin/agents/1/reject
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  token: {{token}}
+}

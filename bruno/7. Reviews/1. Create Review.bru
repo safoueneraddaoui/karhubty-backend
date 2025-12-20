@@ -1,0 +1,28 @@
+meta {
+  name: Create Review
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/api/reviews
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "carId": 1,
+    "rentalId": 1,
+    "rating": 5,
+    "comment": "Excellent car! Very clean and comfortable."
+  }
+}
+
+vars:pre-request {
+  token: {{token}}
+}

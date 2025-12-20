@@ -1,0 +1,18 @@
+meta {
+  name: Approve Agent
+  type: http
+  seq: 3
+}
+
+put {
+  url: http://localhost:8080/api/admin/agents/1/approve
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  token: {{token}}
+}

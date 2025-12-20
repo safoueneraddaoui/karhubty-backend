@@ -62,6 +62,36 @@ This folder contains a complete Bruno collection for testing all Karhubty API en
 - ✅ Get Rental Stats
 - ✅ Get Rental By ID
 
+### 5. Agent Endpoints
+- ✅ Get Agent Profile
+- ✅ Get Agent By ID
+- ✅ Update Agent Profile
+- ✅ Get Agent Revenue
+- ✅ Get Agent Dashboard
+- ✅ Upload Approval Documents
+
+### 6. Admin Endpoints
+- ✅ Get Pending Agents
+- ✅ Get All Agents (with filters)
+- ✅ Approve Agent
+- ✅ Reject Agent
+- ✅ Suspend Agent
+- ✅ Activate Agent
+- ✅ Get Platform Statistics
+- ✅ Get Revenue Statistics
+
+### 7. Review Endpoints
+- ✅ Create Review
+- ✅ Get Car Reviews
+- ✅ Get Car Average Rating
+- ✅ Get User Reviews
+- ✅ Get Review By ID
+- ✅ Update Review
+- ✅ Delete Review
+- ✅ Get All Reviews (Admin)
+- ✅ Get Pending Reviews (Admin)
+- ✅ Approve Review (Admin)
+
 ## 🔐 Authentication
 
 The collection automatically handles JWT tokens:

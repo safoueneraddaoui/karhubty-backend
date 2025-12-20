@@ -1,0 +1,18 @@
+meta {
+  name: Approve Review (Admin)
+  type: http
+  seq: 10
+}
+
+put {
+  url: http://localhost:8080/api/reviews/1/approve
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  token: {{token}}
+}

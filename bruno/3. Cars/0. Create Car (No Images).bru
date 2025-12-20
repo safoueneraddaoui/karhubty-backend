@@ -1,0 +1,33 @@
+meta {
+  name: Create Car (No Images Required)
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/api/cars
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:form-data {
+  brand: Toyota
+  model: Camry
+  year: 2023
+  color: Black
+  licensePlate: ABC-1234
+  fuelType: Diesel
+  transmission: Automatic
+  seats: 5
+  pricePerDay: 150
+  guaranteePrice: 500
+  category: Sedan
+  features: Air Conditioning, Power Windows, GPS
+}
+
+vars:pre-request {
+  token: {{token}}
+}

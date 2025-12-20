@@ -1,0 +1,23 @@
+meta {
+  name: Get All Agents
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8080/api/admin/agents
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+params {
+  ~status: approved
+  ~city: Casablanca
+}
+
+vars:pre-request {
+  token: {{token}}
+}

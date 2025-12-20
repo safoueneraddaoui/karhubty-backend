@@ -112,13 +112,10 @@ export class CarsController {
     @Body() createCarDto: CreateCarDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    // Validate that at least 1 image is uploaded
-    if (!files || files.length === 0) {
-      throw new BadRequestException('At least 1 image is required');
-    }
-
-    // Get image paths
-    const imagePaths = files.map((file) => `cars/${file.filename}`);
+    // Get image paths (optional - if no files, pass empty array)
+    const imagePaths = files && files.length > 0 
+      ? files.map((file) => `cars/${file.filename}`)
+      : [];
 
     return this.carsService.create(req.user.userId, createCarDto, imagePaths);
   }

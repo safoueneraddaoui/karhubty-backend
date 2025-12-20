@@ -1,0 +1,18 @@
+meta {
+  name: Get Agent Profile
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8080/api/agents/profile
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  token: {{token}}
+}

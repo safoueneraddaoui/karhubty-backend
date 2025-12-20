@@ -1,0 +1,18 @@
+meta {
+  name: Activate Agent
+  type: http
+  seq: 6
+}
+
+put {
+  url: http://localhost:8080/api/admin/agents/1/activate
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  token: {{token}}
+}

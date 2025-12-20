@@ -1,0 +1,29 @@
+meta {
+  name: Update Agent Profile
+  type: http
+  seq: 3
+}
+
+put {
+  url: http://localhost:8080/api/agents/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "firstName": "Updated Agent",
+    "lastName": "Name",
+    "phone": "0699999999",
+    "agencyName": "Updated Agency Name",
+    "agencyAddress": "Updated Address"
+  }
+}
+
+vars:pre-request {
+  token: {{token}}
+}

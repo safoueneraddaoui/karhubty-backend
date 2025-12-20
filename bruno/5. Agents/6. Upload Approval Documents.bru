@@ -1,0 +1,22 @@
+meta {
+  name: Upload Approval Documents
+  type: http
+  seq: 6
+}
+
+put {
+  url: http://localhost:8080/api/agents/1/upload-approval
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:form-data {
+  document: @file /path/to/document.pdf
+}
+
+vars:pre-request {
+  token: {{token}}
+}
