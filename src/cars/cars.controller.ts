@@ -27,26 +27,23 @@ import { carImageStorage, imageFileFilter } from '../common/utils/file-upload.ut
 export class CarsController {
   constructor(private readonly carsService: CarsService) {}
 
-  // GET /api/cars - Get all cars (public)
-  @Get()
-  async findAll(
-    @Query('category') category?: string,
-    @Query('minPrice') minPrice?: string,
-    @Query('maxPrice') maxPrice?: string,
-    @Query('transmission') transmission?: string,
-    @Query('fuelType') fuelType?: string,
-    @Query('search') search?: string,
-  ) {
-    const filters = {
-      category,
-      minPrice: minPrice ? parseFloat(minPrice) : undefined,
-      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
-      transmission,
-      fuelType,
-      search,
-    };
+  // === SPECIFIC STATIC ROUTES (must come BEFORE dynamic routes) ===
 
-    return this.carsService.findAll(filters);
+  // GET /api/cars/my-cars - Smart endpoint for authenticated users
+  // - Regular users: see ALL cars
+  // - Agents: see only THEIR cars
+  @Get('my-cars')
+  @UseGuards(JwtAuthGuard)
+  async getMyCars(@Request() req) {
+    console.log('🔵 getMyCars() called - User role:', req.user?.role);
+    if (req.user.role === 'agent') {
+      // Agent: return only their cars
+      console.log('🟢 Agent cars endpoint - agentId:', req.user.userId);
+      return this.carsService.findByAgent(req.user.userId);
+    }
+    // User or admin: return all cars
+    console.log('🟡 User all cars endpoint');
+    return this.carsService.findAll({});
   }
 
   // GET /api/cars/featured - Get featured cars (public)
@@ -70,17 +67,62 @@ export class CarsController {
     return this.carsService.findByCategory(category);
   }
 
-  // GET /api/cars/agent/:agentId - Get cars by agent
+  // === AGENT-SPECIFIC ROUTES ===
+
+  // GET /api/cars/agent/my-cars - Get current agent's own cars
+  @Get('agent/my-cars')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('agent')
+  async getMyAgentCars(@Request() req) {
+    return this.carsService.findByAgent(req.user.userId);
+  }
+
+  // GET /api/cars/agent/:agentId - Get any agent's cars (admin only, or own)
   @Get('agent/:agentId')
-  @UseGuards(JwtAuthGuard)
-  async findByAgent(@Param('agentId', ParseIntPipe) agentId: number) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('agent', 'superadmin')
+  async findByAgent(
+    @Param('agentId', ParseIntPipe) agentId: number,
+    @Request() req,
+  ) {
+    // Agents can only view their own cars (unless admin)
+    if (req.user.role === 'agent' && req.user.userId !== agentId) {
+      throw new Error('Unauthorized: You can only view your own cars');
+    }
     return this.carsService.findByAgent(agentId);
   }
+
+  // === DYNAMIC/PARAMETERIZED ROUTES (must come LAST) ===
 
   // GET /api/cars/:id - Get car by ID (public)
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
+    console.log('🔴 findOne() called with id:', id, '- typeof:', typeof id);
     return this.carsService.findOne(id);
+  }
+
+  // === QUERY-BASED ROUTES ===
+
+  // GET /api/cars - Get all cars (public) - MUST BE AFTER :id to avoid conflicts
+  @Get()
+  async findAllCars(
+    @Query('category') category?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('transmission') transmission?: string,
+    @Query('fuelType') fuelType?: string,
+    @Query('search') search?: string,
+  ) {
+    const filters = {
+      category,
+      minPrice: minPrice ? parseFloat(minPrice) : undefined,
+      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      transmission,
+      fuelType,
+      search,
+    };
+
+    return this.carsService.findAll(filters);
   }
 
   // POST /api/cars/:id/check-availability - Check car availability (public)
@@ -100,17 +142,10 @@ export class CarsController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('agent')
-  @UseInterceptors(
-    FilesInterceptor('images', 5, {
-      storage: carImageStorage,
-      fileFilter: imageFileFilter,
-      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB per file
-    }),
-  )
   async create(
     @Request() req,
     @Body() createCarDto: CreateCarDto,
-    @UploadedFiles() files: Express.Multer.File[],
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
     // Get image paths (optional - if no files, pass empty array)
     const imagePaths = files && files.length > 0 
@@ -123,7 +158,7 @@ export class CarsController {
   // PUT /api/cars/:id - Update car (Agent only - own cars)
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('agent')
+  @Roles('agent', 'superadmin')
   @UseInterceptors(
     FilesInterceptor('images', 5, {
       storage: carImageStorage,
@@ -138,27 +173,30 @@ export class CarsController {
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
     const imagePaths = files?.map((file) => `cars/${file.filename}`);
-    return this.carsService.update(id, req.user.userId, updateCarDto, imagePaths);
+    // Service will verify ownership
+    return this.carsService.update(id, req.user.userId, updateCarDto, imagePaths, req.user.role);
   }
 
   // PUT /api/cars/:id/availability - Set car availability (Agent only)
   @Put(':id/availability')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('agent')
+  @Roles('agent', 'superadmin')
   async setAvailability(
     @Param('id', ParseIntPipe) id: number,
     @Request() req,
     @Body('isAvailable') isAvailable: boolean,
   ) {
-    return this.carsService.setAvailability(id, req.user.userId, isAvailable);
+    // Service will verify ownership
+    return this.carsService.setAvailability(id, req.user.userId, isAvailable, req.user.role);
   }
 
   // DELETE /api/cars/:id - Delete car (Agent only - own cars)
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('agent')
+  @Roles('agent', 'superadmin')
   async remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    await this.carsService.remove(id, req.user.userId);
+    // Service will verify ownership
+    await this.carsService.remove(id, req.user.userId, req.user.role);
     return { success: true, message: 'Car deleted successfully' };
   }
 }

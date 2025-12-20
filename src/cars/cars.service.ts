@@ -9,6 +9,7 @@ import { Repository, Like } from 'typeorm';
 import { Car } from './car.entity';
 import { CreateCarDto } from './dto/create-car.dto';
 import { UpdateCarDto } from './dto/update-car.dto';
+import { Rental } from '../rentals/rental.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -17,6 +18,8 @@ export class CarsService {
   constructor(
     @InjectRepository(Car)
     private carRepository: Repository<Car>,
+    @InjectRepository(Rental)
+    private rentalRepository: Repository<Rental>,
   ) {}
 
   // Create new car with images
@@ -125,11 +128,12 @@ export class CarsService {
     agentId: number,
     updateCarDto: UpdateCarDto,
     newImages?: string[],
+    role?: string,
   ): Promise<Car> {
     const car = await this.findOne(id);
 
-    // Verify ownership
-    if (car.agentId !== agentId) {
+    // Verify ownership (superadmins can update any car)
+    if (role !== 'superadmin' && car.agentId !== agentId) {
       throw new ForbiddenException('You can only update your own cars');
     }
 
@@ -154,11 +158,11 @@ export class CarsService {
   }
 
   // Delete car
-  async remove(id: number, agentId: number): Promise<void> {
+  async remove(id: number, agentId: number, role?: string): Promise<void> {
     const car = await this.findOne(id);
 
-    // Verify ownership
-    if (car.agentId !== agentId) {
+    // Verify ownership (superadmins can delete any car)
+    if (role !== 'superadmin' && car.agentId !== agentId) {
       throw new ForbiddenException('You can only delete your own cars');
     }
 
@@ -180,11 +184,12 @@ export class CarsService {
     id: number,
     agentId: number,
     isAvailable: boolean,
+    role?: string,
   ): Promise<Car> {
     const car = await this.findOne(id);
 
-    // Verify ownership
-    if (car.agentId !== agentId) {
+    // Verify ownership (superadmins can update any car)
+    if (role !== 'superadmin' && car.agentId !== agentId) {
       throw new ForbiddenException('You can only update your own cars');
     }
 
@@ -223,13 +228,34 @@ export class CarsService {
     carId: number,
     startDate: Date,
     endDate: Date,
-  ): Promise<{ available: boolean }> {
+  ): Promise<{ available: boolean; message?: string }> {
     const car = await this.findOne(carId);
 
-    // TODO: Check against existing rentals when Rental module is created
-    // For now, just check if car exists and is available
+    if (!car.isAvailable) {
+      return { available: false, message: 'Car is not available' };
+    }
 
-    return { available: car.isAvailable };
+    // Check against existing rentals
+    const conflictingRental = await this.rentalRepository
+      .createQueryBuilder('rental')
+      .where('rental.carId = :carId', { carId })
+      .andWhere('rental.status IN (:...statuses)', {
+        statuses: ['pending', 'approved'],
+      })
+      .andWhere(
+        '(rental.startDate <= :endDate AND rental.endDate >= :startDate)',
+        { startDate, endDate },
+      )
+      .getOne();
+
+    if (conflictingRental) {
+      return {
+        available: false,
+        message: `Car is reserved from ${conflictingRental.startDate.toISOString().split('T')[0]} to ${conflictingRental.endDate.toISOString().split('T')[0]}`,
+      };
+    }
+
+    return { available: true };
   }
 
   // Admin: Get all cars

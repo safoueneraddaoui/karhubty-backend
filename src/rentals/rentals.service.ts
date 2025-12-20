@@ -10,6 +10,7 @@ import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Rental } from './rental.entity';
 import { Car } from '../cars/car.entity';
 import { CreateRentalDto } from './dto/create-rental.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class RentalsService {
@@ -18,6 +19,7 @@ export class RentalsService {
     private rentalRepository: Repository<Rental>,
     @InjectRepository(Car)
     private carRepository: Repository<Car>,
+    private notificationsService: NotificationsService,
   ) {}
 
   // Create rental request
@@ -103,23 +105,113 @@ export class RentalsService {
       paymentStatus: 'pending',
     });
 
-    return this.rentalRepository.save(rental);
+    const savedRental = await this.rentalRepository.save(rental);
+
+    // Send notification to agent
+    await this.notificationsService.create({
+      recipientId: car.agentId,
+      recipientType: 'agent',
+      type: 'rental_request',
+      title: 'New Rental Request',
+      message: `You have a new rental request for ${car.brand} ${car.model} from ${startDate} to ${endDate}`,
+      relatedEntityType: 'rental',
+      relatedEntityId: savedRental.rentalId,
+    });
+
+    return savedRental;
   }
 
-  // Get all rentals for a user
-  async findByUser(userId: number): Promise<Rental[]> {
-    return this.rentalRepository.find({
+  // Get all rentals for a user (with car details)
+  async findByUser(userId: number): Promise<any[]> {
+    const rentals = await this.rentalRepository.find({
       where: { userId },
       order: { requestDate: 'DESC' },
     });
+
+    // Attach car details to each rental
+    const rentalsWithDetails = await Promise.all(
+      rentals.map(async (rental) => {
+        const car = await this.carRepository.findOne({
+          where: { carId: rental.carId },
+        });
+
+        return {
+          ...rental,
+          car: car ? {
+            carId: car.carId,
+            brand: car.brand,
+            model: car.model,
+            year: car.year,
+            color: car.color,
+            licensePlate: car.licensePlate,
+            pricePerDay: car.pricePerDay,
+            category: car.category,
+            images: car.images,
+            isAvailable: car.isAvailable,
+          } : null,
+        };
+      }),
+    );
+
+    return rentalsWithDetails;
   }
 
-  // Get all rentals for an agent
-  async findByAgent(agentId: number): Promise<Rental[]> {
-    return this.rentalRepository.find({
+  // Get all rentals for an agent (with user and car details)
+  async findByAgent(agentId: number): Promise<any[]> {
+    // Get all rentals for this agent
+    const rentals = await this.rentalRepository.find({
       where: { agentId },
       order: { requestDate: 'DESC' },
     });
+
+    // Since we can't use relations (they're commented out), we'll manually fetch and attach user data
+    const User = require('../users/user.entity').User;
+    const userRepository = this.rentalRepository.manager.getRepository(User);
+    
+    const rentalsWithDetails = await Promise.all(
+      rentals.map(async (rental) => {
+        const user = await userRepository.findOne({
+          where: { userId: rental.userId },
+        });
+        
+        const car = await this.carRepository.findOne({
+          where: { carId: rental.carId },
+        });
+
+        return {
+          ...rental,
+          user: user ? {
+            userId: user.userId,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            phone: user.phone,
+            address: user.address,
+            city: user.city,
+          } : null,
+          car: car ? {
+            carId: car.carId,
+            brand: car.brand,
+            model: car.model,
+            year: car.year,
+            color: car.color,
+            licensePlate: car.licensePlate,
+            pricePerDay: car.pricePerDay,
+            isAvailable: car.isAvailable,
+          } : null,
+        };
+      }),
+    );
+
+    return rentalsWithDetails;
+  }
+
+  // Get pending rental count for an agent
+  async getPendingCountByAgent(agentId: number): Promise<{ count: number }> {
+    const count = await this.rentalRepository.count({
+      where: { agentId, status: 'pending' },
+    });
+    return { count };
   }
 
   // Get rental by ID
@@ -160,7 +252,24 @@ export class RentalsService {
     rental.status = 'approved';
     rental.approvalDate = new Date();
 
-    return this.rentalRepository.save(rental);
+    const savedRental = await this.rentalRepository.save(rental);
+
+    // Update car status to unavailable
+    car.isAvailable = false;
+    await this.carRepository.save(car);
+
+    // Send notification to user
+    await this.notificationsService.create({
+      recipientId: rental.userId,
+      recipientType: 'user',
+      type: 'rental_approved',
+      title: 'Rental Request Approved',
+      message: `Your rental request for ${car.brand} ${car.model} has been approved! Pick up date: ${rental.startDate.toISOString().split('T')[0]}`,
+      relatedEntityType: 'rental',
+      relatedEntityId: savedRental.rentalId,
+    });
+
+    return savedRental;
   }
 
   // Reject rental (Agent only)
@@ -178,7 +287,25 @@ export class RentalsService {
 
     rental.status = 'rejected';
 
-    return this.rentalRepository.save(rental);
+    const savedRental = await this.rentalRepository.save(rental);
+
+    // Get car details for notification
+    const car = await this.carRepository.findOne({
+      where: { carId: rental.carId },
+    });
+
+    // Send notification to user
+    await this.notificationsService.create({
+      recipientId: rental.userId,
+      recipientType: 'user',
+      type: 'rental_rejected',
+      title: 'Rental Request Rejected',
+      message: `Your rental request for ${car?.brand} ${car?.model} has been rejected`,
+      relatedEntityType: 'rental',
+      relatedEntityId: savedRental.rentalId,
+    });
+
+    return savedRental;
   }
 
   // Cancel rental (User only)
@@ -209,8 +336,20 @@ export class RentalsService {
     }
 
     rental.status = 'cancelled';
+    const savedRental = await this.rentalRepository.save(rental);
 
-    return this.rentalRepository.save(rental);
+    // Restore car availability if it was approved
+    if (rental.status === 'cancelled') {
+      const car = await this.carRepository.findOne({
+        where: { carId: rental.carId },
+      });
+      if (car && !car.isAvailable) {
+        car.isAvailable = true;
+        await this.carRepository.save(car);
+      }
+    }
+
+    return savedRental;
   }
 
   // Complete rental (Mark as completed)
@@ -233,7 +372,18 @@ export class RentalsService {
     rental.completionDate = new Date();
     rental.paymentStatus = 'paid';
 
-    return this.rentalRepository.save(rental);
+    const savedRental = await this.rentalRepository.save(rental);
+
+    // Restore car availability after completion
+    const car = await this.carRepository.findOne({
+      where: { carId: rental.carId },
+    });
+    if (car && !car.isAvailable) {
+      car.isAvailable = true;
+      await this.carRepository.save(car);
+    }
+
+    return savedRental;
   }
 
   // Calculate rental price

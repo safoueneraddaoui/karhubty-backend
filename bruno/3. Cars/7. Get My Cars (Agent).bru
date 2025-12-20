@@ -1,0 +1,22 @@
+meta {
+  name: Get My Cars
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/cars/my-cars
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{agentToken}}
+}
+
+docs {
+  Smart endpoint that works for both users and agents:
+  - If logged in as agent: returns only YOUR cars
+  - If logged in as user: returns ALL cars
+  No parameters needed - uses role from JWT token.
+}

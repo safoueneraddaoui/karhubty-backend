@@ -1,0 +1,36 @@
+meta {
+  name: Create Car (JSON)
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/api/cars
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "brand": "Toyota",
+    "model": "Camry",
+    "year": 2023,
+    "color": "Black",
+    "licensePlate": "ABC-123",
+    "fuelType": "Petrol",
+    "transmission": "Automatic",
+    "seats": 5,
+    "pricePerDay": 150,
+    "guaranteePrice": 500,
+    "category": "Sedan",
+    "features": ["GPS", "Bluetooth", "AC"]
+  }
+}
+
+vars:pre-request {
+  token: {{token}}
+}

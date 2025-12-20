@@ -1,0 +1,18 @@
+meta {
+  name: Mark as Read
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:8080/api/notifications/1/read
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  token: {{token}}
+}

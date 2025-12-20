@@ -24,6 +24,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException();
     }
 
+    // Return appropriate ID field based on role
+    if (payload.role === 'agent') {
+      return {
+        userId: payload.sub, // For agents, this is actually their agentId
+        agentId: payload.sub,
+        email: payload.email,
+        role: payload.role,
+      };
+    }
+
     return {
       userId: payload.sub,
       email: payload.email,

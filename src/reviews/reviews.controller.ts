@@ -29,6 +29,24 @@ export class ReviewsController {
     return this.reviewsService.create(req.user.userId, createReviewDto);
   }
 
+  // === STATIC GET ROUTES (must come BEFORE parameterized routes) ===
+
+  // GET /api/reviews - Get all reviews (Admin)
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('superadmin')
+  async findAll() {
+    return this.reviewsService.findAll();
+  }
+
+  // GET /api/reviews/admin/pending - Get pending reviews (Admin)
+  @Get('admin/pending')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('superadmin')
+  async getPendingReviews() {
+    return this.reviewsService.getPendingReviews();
+  }
+
   // GET /api/reviews/car/:carId - Get reviews for car
   @Get('car/:carId')
   async findByCarId(@Param('carId', ParseIntPipe) carId: number) {
@@ -56,6 +74,8 @@ export class ReviewsController {
     return this.reviewsService.findByUserId(userId);
   }
 
+  // === PARAMETERIZED ROUTES (must come AFTER static routes) ===
+
   // GET /api/reviews/:id - Get review by ID
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
@@ -81,22 +101,6 @@ export class ReviewsController {
   async remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
     await this.reviewsService.remove(id, req.user.userId);
     return { success: true, message: 'Review deleted successfully' };
-  }
-
-  // GET /api/reviews - Get all reviews (Admin)
-  @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('superadmin')
-  async findAll() {
-    return this.reviewsService.findAll();
-  }
-
-  // GET /api/reviews/pending - Get pending reviews (Admin)
-  @Get('admin/pending')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('superadmin')
-  async getPendingReviews() {
-    return this.reviewsService.getPendingReviews();
   }
 
   // PUT /api/reviews/:id/approve - Approve review (Admin)

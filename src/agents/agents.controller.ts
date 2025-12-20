@@ -54,6 +54,7 @@ export class AgentsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('agent')
   async getProfile(@Request() req) {
+    console.log('Agent profile request - User ID:', req.user.userId, 'Role:', req.user.role, 'Email:', req.user.email);
     return this.agentsService.getProfile(req.user.userId);
   }
 

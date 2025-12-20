@@ -1,0 +1,18 @@
+meta {
+  name: Delete Notification
+  type: http
+  seq: 6
+}
+
+delete {
+  url: http://localhost:8080/api/notifications/1
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  token: {{token}}
+}

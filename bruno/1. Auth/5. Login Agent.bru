@@ -1,0 +1,32 @@
+meta {
+  name: Login Agent
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "agent@agent.com",
+    "password": "Agent123"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    const data = res.body;
+    if (data.user && data.user.token) {
+      bru.setEnvVar("agentToken", data.user.token);
+      bru.setEnvVar("agentId", data.user.id || data.user.agentId);
+    }
+  }
+}
+
+docs {
+  Login as agent and save token to environment for use in other requests.
+}

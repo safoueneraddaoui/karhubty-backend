@@ -8,6 +8,7 @@ import {
   UseGuards,
   Request,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { RentalsService } from './rentals.service';
 import { CreateRentalDto } from './dto/create-rental.dto';
@@ -67,7 +68,23 @@ export class RentalsController {
     return this.rentalsService.findByUser(userId);
   }
 
-  // GET /api/rentals/agent/:agentId - Get agent's rentals
+  // GET /api/rentals/agent - Get current logged-in agent's rentals (JWT based)
+  @Get('agent')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('agent')
+  async getMyRentals(@Request() req) {
+    return this.rentalsService.findByAgent(req.user.userId);
+  }
+
+  // GET /api/rentals/agent/pending-count - Get pending rental count for current agent
+  @Get('agent/pending-count')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('agent')
+  async getPendingCount(@Request() req) {
+    return this.rentalsService.getPendingCountByAgent(req.user.userId);
+  }
+
+  // GET /api/rentals/agent/:agentId - Get agent's rentals by ID
   @Get('agent/:agentId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('agent', 'superadmin')
@@ -125,11 +142,27 @@ export class RentalsController {
     return this.rentalsService.complete(id);
   }
 
-  // GET /api/rentals - Get all rentals (Admin only)
+  // GET /api/rentals - Get all rentals (Admin) or filter by agentId (Agent)
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('superadmin')
-  async findAll() {
+  @UseGuards(JwtAuthGuard)
+  async findAll(@Request() req, @Query('agentId') agentId?: string) {
+    // If agentId query parameter is provided
+    if (agentId) {
+      const parsedAgentId = parseInt(agentId, 10);
+      
+      // Agents can only access their own rentals
+      if (req.user.role === 'agent' && req.user.userId !== parsedAgentId) {
+        throw new Error('Unauthorized: You can only view your own rentals');
+      }
+      
+      return this.rentalsService.findByAgent(parsedAgentId);
+    }
+    
+    // Only superadmin can view all rentals without filter
+    if (req.user.role !== 'superadmin') {
+      throw new Error('Unauthorized: Only admins can view all rentals');
+    }
+    
     return this.rentalsService.findAll();
   }
 }
