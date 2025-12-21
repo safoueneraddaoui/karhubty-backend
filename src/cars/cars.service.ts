@@ -10,6 +10,8 @@ import { Car } from './car.entity';
 import { CreateCarDto } from './dto/create-car.dto';
 import { UpdateCarDto } from './dto/update-car.dto';
 import { Rental } from '../rentals/rental.entity';
+import { User } from '../users/user.entity';
+import { Agent } from '../agents/agent.entity';
 import { deleteImageFile, getImageRelativePath } from '../common/utils/file-upload.util';
 import * as path from 'path';
 
@@ -20,6 +22,10 @@ export class CarsService {
     private carRepository: Repository<Car>,
     @InjectRepository(Rental)
     private rentalRepository: Repository<Rental>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(Agent)
+    private agentRepository: Repository<Agent>,
   ) {}
 
   // Create new car with images
@@ -124,8 +130,8 @@ export class CarsService {
     return query.getMany();
   }
 
-  // Get car by ID with images
-  async findOne(id: number): Promise<Car> {
+  // Get car by ID with images and agent info
+  async findOne(id: number): Promise<any> {
     const car = await this.carRepository.findOne({
       where: { carId: id },
     });
@@ -134,7 +140,24 @@ export class CarsService {
       throw new NotFoundException('Car not found');
     }
 
-    return car;
+    // Get agent information from Agent entity
+    const agentInfo: any = {};
+    if (car.agentId) {
+      const agent = await this.agentRepository.findOne({
+        where: { agentId: car.agentId },
+      });
+      
+      if (agent) {
+        agentInfo.agentId = agent.agentId;
+        agentInfo.agentName = `${agent.firstName} ${agent.lastName}`;
+        agentInfo.agencyName = agent.agencyName;
+      }
+    }
+
+    return {
+      ...car,
+      ...agentInfo,
+    };
   }
 
   // Get cars by agent

@@ -90,7 +90,18 @@ export class RentalsService {
     const days = Math.ceil(
       (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
     );
-    const totalPrice = days * parseFloat(car.pricePerDay.toString());
+    const pricePerDay = parseFloat(car.pricePerDay.toString());
+    const guarantee = parseFloat(car.guaranteePrice.toString());
+    const rentalPrice = days * pricePerDay;
+    const totalPrice = rentalPrice + guarantee;
+
+    console.log('💰 Price Calculation:', {
+      days,
+      pricePerDay,
+      rentalPrice,
+      guarantee,
+      totalPrice,
+    });
 
     // Create rental
     const rental = this.rentalRepository.create({
@@ -99,8 +110,8 @@ export class RentalsService {
       agentId: car.agentId,
       startDate: start,
       endDate: end,
-      totalPrice,
-      guaranteeAmount: parseFloat(car.guaranteePrice.toString()),
+      totalPrice: parseFloat(totalPrice.toFixed(2)),
+      guaranteeAmount: parseFloat(guarantee.toFixed(2)),
       status: 'pending',
       paymentStatus: 'pending',
     });
@@ -259,12 +270,16 @@ export class RentalsService {
     await this.carRepository.save(car);
 
     // Send notification to user
+    const pickupDate = rental.startDate instanceof Date 
+      ? rental.startDate.toISOString().split('T')[0]
+      : new Date(rental.startDate).toISOString().split('T')[0];
+    
     await this.notificationsService.create({
       recipientId: rental.userId,
       recipientType: 'user',
       type: 'rental_approved',
       title: 'Rental Request Approved',
-      message: `Your rental request for ${car.brand} ${car.model} has been approved! Pick up date: ${rental.startDate.toISOString().split('T')[0]}`,
+      message: `Your rental request for ${car.brand} ${car.model} has been approved! Pick up date: ${pickupDate}`,
       relatedEntityType: 'rental',
       relatedEntityId: savedRental.rentalId,
     });
@@ -415,15 +430,16 @@ export class RentalsService {
       (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
     );
     const pricePerDay = parseFloat(car.pricePerDay.toString());
-    const totalPrice = days * pricePerDay;
+    const rentalPrice = days * pricePerDay;
     const guaranteeAmount = parseFloat(car.guaranteePrice.toString());
+    const totalPrice = rentalPrice + guaranteeAmount;
 
     return {
       days,
       pricePerDay,
       totalPrice,
       guaranteeAmount,
-      total: totalPrice + guaranteeAmount,
+      total: totalPrice,
     };
   }
 
