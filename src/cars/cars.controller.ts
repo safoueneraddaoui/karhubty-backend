@@ -21,7 +21,11 @@ import { UpdateCarDto } from './dto/update-car.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { carImageStorage, imageFileFilter } from '../common/utils/file-upload.util';
+import {
+  carImageStorage,
+  imageFileFilter,
+  imageUploadLimits,
+} from '../common/utils/file-upload.util';
 
 @Controller('cars')
 export class CarsController {
@@ -142,17 +146,23 @@ export class CarsController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('agent')
+  @UseInterceptors(
+    FilesInterceptor('images', imageUploadLimits.files, {
+      storage: carImageStorage,
+      fileFilter: imageFileFilter,
+      limits: { fileSize: imageUploadLimits.fileSize },
+    }),
+  )
   async create(
     @Request() req,
-    @Body() createCarDto: CreateCarDto,
+    @Body() createCarDto: any,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    // Get image paths (optional - if no files, pass empty array)
-    const imagePaths = files && files.length > 0 
-      ? files.map((file) => `cars/${file.filename}`)
-      : [];
-
-    return this.carsService.create(req.user.userId, createCarDto, imagePaths);
+    console.log('📤 POST /cars - Received data:', {
+      body: createCarDto,
+      files: files?.map(f => ({ name: f.filename, size: f.size, mimetype: f.mimetype })),
+    });
+    return this.carsService.create(req.user.userId, createCarDto, files);
   }
 
   // PUT /api/cars/:id - Update car (Agent only - own cars)
@@ -160,21 +170,31 @@ export class CarsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('agent', 'superadmin')
   @UseInterceptors(
-    FilesInterceptor('images', 5, {
+    FilesInterceptor('images', imageUploadLimits.files, {
       storage: carImageStorage,
       fileFilter: imageFileFilter,
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: imageUploadLimits.fileSize },
     }),
   )
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Request() req,
-    @Body() updateCarDto: UpdateCarDto,
+    @Body() updateCarDto: any,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    const imagePaths = files?.map((file) => `cars/${file.filename}`);
+    console.log('📤 PUT /cars/:id - Received data:', {
+      carId: id,
+      body: updateCarDto,
+      files: files?.map(f => ({ name: f.filename, size: f.size, mimetype: f.mimetype })),
+    });
     // Service will verify ownership
-    return this.carsService.update(id, req.user.userId, updateCarDto, imagePaths, req.user.role);
+    return this.carsService.update(
+      id,
+      req.user.userId,
+      updateCarDto,
+      files,
+      req.user.role,
+    );
   }
 
   // PUT /api/cars/:id/availability - Set car availability (Agent only)

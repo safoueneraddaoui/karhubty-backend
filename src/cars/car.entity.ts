@@ -51,10 +51,7 @@ export class Car {
   category: string; // Sedan, SUV, Sports, Luxury, Electric, Compact
 
   @Column('simple-array', { nullable: true })
-  features: string[]; // ['GPS', 'Bluetooth', 'AC']
-
-  @Column('simple-array', { nullable: true })
-  images: string[]; // Array of image URLs/paths
+  images: string[]; // Array of image paths: ['cars/filename1.jpg', 'cars/filename2.jpg']
 
   @Column({ default: true })
   isAvailable: boolean;

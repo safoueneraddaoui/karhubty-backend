@@ -1,5 +1,5 @@
 meta {
-  name: Create Car (JSON)
+  name: Create Car (Agent)
   type: http
   seq: 1
 }
@@ -20,17 +20,25 @@ body:json {
     "model": "Camry",
     "year": 2023,
     "color": "Black",
-    "licensePlate": "ABC-123",
+    "licensePlate": "ABC-123-AGENT",
     "fuelType": "Petrol",
     "transmission": "Automatic",
     "seats": 5,
     "pricePerDay": 150,
     "guaranteePrice": 500,
-    "category": "Sedan",
-    "features": ["GPS", "Bluetooth", "AC"]
+    "category": "Sedan"
   }
 }
 
-vars:pre-request {
-  token: {{token}}
+script:post-response {
+  if (res.status === 201 || res.status === 200) {
+    console.log('✅ Car created successfully!');
+    console.log('Car ID:', res.body.carId);
+    bru.setEnvVar('createdCarId', res.body.carId);
+  } else {
+    console.log('❌ Failed to create car');
+    console.log('Status:', res.status);
+    console.log('Response:', res.body);
+  }
 }
+

@@ -10,7 +10,7 @@ import { Car } from './car.entity';
 import { CreateCarDto } from './dto/create-car.dto';
 import { UpdateCarDto } from './dto/update-car.dto';
 import { Rental } from '../rentals/rental.entity';
-import * as fs from 'fs';
+import { deleteImageFile, getImageRelativePath } from '../common/utils/file-upload.util';
 import * as path from 'path';
 
 @Injectable()
@@ -26,27 +26,45 @@ export class CarsService {
   async create(
     agentId: number,
     createCarDto: CreateCarDto,
-    images: string[],
+    uploadedFiles?: Express.Multer.File[],
   ): Promise<Car> {
+    console.log('🚗 [CarsService.create] Starting:', {
+      agentId,
+      createCarDto,
+      uploadedFilesCount: uploadedFiles?.length || 0,
+    });
+
     // Check if license plate already exists
     const existingCar = await this.carRepository.findOne({
       where: { licensePlate: createCarDto.licensePlate },
     });
 
     if (existingCar) {
+      console.error('❌ [CarsService.create] License plate already exists:', createCarDto.licensePlate);
       throw new ConflictException('License plate already exists');
     }
 
-    // Create car
+    // Convert uploaded files to image paths
+    const imagePaths = uploadedFiles
+      ? uploadedFiles.map((file) => getImageRelativePath(file.filename))
+      : [];
+
+    console.log('📸 [CarsService.create] Image paths:', imagePaths);
+
+    // Create car with images
     const car = this.carRepository.create({
       ...createCarDto,
       agentId,
-      images,
+      images: imagePaths,
       isAvailable: true,
       averageRating: 0,
     });
 
-    return this.carRepository.save(car);
+    console.log('💾 [CarsService.create] Car object created:', car);
+
+    const savedCar = await this.carRepository.save(car);
+    console.log('✅ [CarsService.create] Car saved successfully:', savedCar);
+    return savedCar;
   }
 
   // Get all cars with optional filters
@@ -106,9 +124,11 @@ export class CarsService {
     return query.getMany();
   }
 
-  // Get car by ID
+  // Get car by ID with images
   async findOne(id: number): Promise<Car> {
-    const car = await this.carRepository.findOne({ where: { carId: id } });
+    const car = await this.carRepository.findOne({
+      where: { carId: id },
+    });
 
     if (!car) {
       throw new NotFoundException('Car not found');
@@ -127,34 +147,46 @@ export class CarsService {
     id: number,
     agentId: number,
     updateCarDto: UpdateCarDto,
-    newImages?: string[],
+    newImages?: Express.Multer.File[],
     role?: string,
   ): Promise<Car> {
+    console.log('🚗 [CarsService.update] Starting:', {
+      carId: id,
+      agentId,
+      updateCarDto,
+      newImagesCount: newImages?.length || 0,
+    });
+
     const car = await this.findOne(id);
 
     // Verify ownership (superadmins can update any car)
     if (role !== 'superadmin' && car.agentId !== agentId) {
+      console.error('❌ [CarsService.update] Ownership check failed:', { carAgentId: car.agentId, agentId, role });
       throw new ForbiddenException('You can only update your own cars');
     }
 
-    // Update fields
+    // Update car fields
     Object.assign(car, updateCarDto);
 
     // Update images if provided
     if (newImages && newImages.length > 0) {
-      // Delete old images from filesystem
+      console.log('📸 [CarsService.update] Adding new images...');
+      const newImagePaths = newImages.map((file) =>
+        getImageRelativePath(file.filename),
+      );
+      // Append new images to existing ones instead of replacing
       if (car.images && car.images.length > 0) {
-        car.images.forEach((imagePath) => {
-          const fullPath = path.join(process.cwd(), 'uploads', imagePath);
-          if (fs.existsSync(fullPath)) {
-            fs.unlinkSync(fullPath);
-          }
-        });
+        car.images = [...car.images, ...newImagePaths];
+      } else {
+        car.images = newImagePaths;
       }
-      car.images = newImages;
+      console.log('📸 [CarsService.update] Updated image paths:', car.images);
     }
 
-    return this.carRepository.save(car);
+    console.log('💾 [CarsService.update] Saving car...');
+    const savedCar = await this.carRepository.save(car);
+    console.log('✅ [CarsService.update] Car updated successfully:', savedCar);
+    return savedCar;
   }
 
   // Delete car
@@ -169,10 +201,7 @@ export class CarsService {
     // Delete images from filesystem
     if (car.images && car.images.length > 0) {
       car.images.forEach((imagePath) => {
-        const fullPath = path.join(process.cwd(), 'uploads', imagePath);
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-        }
+        deleteImageFile(imagePath);
       });
     }
 
@@ -267,13 +296,10 @@ export class CarsService {
   async removeByAdmin(id: number): Promise<void> {
     const car = await this.findOne(id);
 
-    // Delete images
+    // Delete images from filesystem
     if (car.images && car.images.length > 0) {
       car.images.forEach((imagePath) => {
-        const fullPath = path.join(process.cwd(), 'uploads', imagePath);
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-        }
+        deleteImageFile(imagePath);
       });
     }
 

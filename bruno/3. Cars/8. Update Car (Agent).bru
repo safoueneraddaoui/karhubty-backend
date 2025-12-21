@@ -1,0 +1,42 @@
+meta {
+  name: Update Car (Agent)
+  type: http
+  seq: 8
+}
+
+put {
+  url: http://localhost:8080/api/cars/{{createdCarId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "brand": "Honda",
+    "model": "Civic",
+    "year": 2024,
+    "color": "Silver",
+    "licensePlate": "ABC-123-AGENT",
+    "fuelType": "Hybrid",
+    "transmission": "Automatic",
+    "seats": 5,
+    "pricePerDay": 175,
+    "guaranteePrice": 750,
+    "category": "Sedan"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    console.log('✅ Car updated successfully!');
+    console.log('Updated car:', res.body);
+  } else {
+    console.log('❌ Failed to update car');
+    console.log('Status:', res.status);
+    console.log('Response:', res.body);
+  }
+}

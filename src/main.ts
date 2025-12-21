@@ -1,5 +1,4 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -30,14 +29,10 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  // Global validation pipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+  // Note: Global validation pipe disabled - no validation on any endpoint
+  // Validation will only be applied to specific endpoints if needed
+
+  // Note: Validation filter disabled - no validation error filtering
 
   // API prefix
   app.setGlobalPrefix('api');

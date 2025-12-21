@@ -1,0 +1,39 @@
+meta {
+  name: FULL TEST FLOW - Login & Create/Update Car
+  type: http
+  seq: 0
+}
+
+post {
+  url: http://localhost:8080/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "agent@agent.com",
+    "password": "Agent123!"
+  }
+}
+
+script:post-response {
+  console.log('\n' + '='.repeat(60));
+  console.log('STEP 1: LOGIN TEST');
+  console.log('='.repeat(60));
+  
+  if (res.status === 200) {
+    const data = res.body;
+    console.log('✅ Login successful!');
+    console.log('   Status:', res.status);
+    console.log('   Email:', data.user?.email);
+    console.log('   Role:', data.user?.role);
+    console.log('   Token received:', !!data.user?.token);
+    bru.setEnvVar('token', data.user.token);
+    bru.setEnvVar('userId', data.user.id || data.user.userId);
+  } else {
+    console.log('❌ Login failed!');
+    console.log('   Status:', res.status);
+    console.log('   Response:', JSON.stringify(res.body, null, 2));
+  }
+}
