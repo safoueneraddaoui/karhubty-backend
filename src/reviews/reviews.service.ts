@@ -9,19 +9,47 @@ import { Repository } from 'typeorm';
 import { Review } from './review.entity';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
+import { Rental } from '../rentals/rental.entity';
+import { Car } from '../cars/car.entity';
 
 @Injectable()
 export class ReviewsService {
   constructor(
     @InjectRepository(Review)
     private reviewRepository: Repository<Review>,
+    @InjectRepository(Rental)
+    private rentalRepository: Repository<Rental>,
+    @InjectRepository(Car)
+    private carRepository: Repository<Car>,
   ) {}
 
-  // Create review
+  // Create review - only if user has approved rental for this car
   async create(userId: number, createReviewDto: CreateReviewDto): Promise<Review> {
     // Validate rating
     if (createReviewDto.rating < 1 || createReviewDto.rating > 5) {
       throw new BadRequestException('Rating must be between 1 and 5');
+    }
+
+    // Verify user has approved or completed rental for this car
+    const approvedRental = await this.rentalRepository.findOne({
+      where: {
+        userId,
+        carId: createReviewDto.carId,
+        status: 'approved', // Allow reviews on ongoing or completed rentals
+      },
+    });
+
+    // Also check for completed rentals
+    const completedRental = !approvedRental ? await this.rentalRepository.findOne({
+      where: {
+        userId,
+        carId: createReviewDto.carId,
+        status: 'completed',
+      },
+    }) : null;
+
+    if (!approvedRental && !completedRental) {
+      throw new ForbiddenException('You can only review cars you have rented');
     }
 
     const review = this.reviewRepository.create({
@@ -32,11 +60,12 @@ export class ReviewsService {
     return this.reviewRepository.save(review);
   }
 
-  // Get reviews for a car
+  // Get latest 5 reviews for a car
   async findByCarId(carId: number): Promise<Review[]> {
     return this.reviewRepository.find({
       where: { carId, isApproved: true },
       order: { reviewDate: 'DESC' },
+      take: 5, // Only get 5 latest
     });
   }
 
@@ -141,5 +170,46 @@ export class ReviewsService {
       averageRating: parseFloat(averageRating.toFixed(2)),
       totalReviews: reviews.length,
     };
+  }
+
+  // Agent reply to review
+  async replyToReview(
+    reviewId: number,
+    agentId: number,
+    reply: string,
+  ): Promise<Review> {
+    const review = await this.findOne(reviewId);
+
+    // Verify agent owns the car
+    const car = await this.carRepository.findOne({
+      where: { carId: review.carId },
+    });
+
+    if (!car || car.agentId !== agentId) {
+      throw new ForbiddenException(
+        'You can only reply to reviews on your own cars',
+      );
+    }
+
+    review.agentReply = reply;
+    review.replyDate = new Date();
+    return this.reviewRepository.save(review);
+  }
+
+  // Get reviews for agent's cars
+  async getAgentCarReviews(agentId: number): Promise<Review[]> {
+    const cars = await this.carRepository.find({ where: { agentId } });
+    const carIds = cars.map((c) => c.carId);
+
+    if (carIds.length === 0) {
+      return [];
+    }
+
+    return this.reviewRepository
+      .createQueryBuilder('review')
+      .where('review.carId IN (:...carIds)', { carIds })
+      .andWhere('review.isApproved = :approved', { approved: true })
+      .orderBy('review.reviewDate', 'DESC')
+      .getMany();
   }
 }

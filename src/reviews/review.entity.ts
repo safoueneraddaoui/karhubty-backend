@@ -29,8 +29,14 @@ export class Review {
   @Column('text')
   comment: string;
 
+  @Column('text', { nullable: true })
+  agentReply: string; // Agent reply to the review
+
   @CreateDateColumn()
   reviewDate: Date;
+
+  @CreateDateColumn({ nullable: true })
+  replyDate: Date; // When agent replied
 
   @Column({ default: true })
   isApproved: boolean;

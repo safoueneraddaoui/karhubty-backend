@@ -47,6 +47,14 @@ export class ReviewsController {
     return this.reviewsService.getPendingReviews();
   }
 
+  // GET /api/reviews/agent/my-reviews - Get reviews for agent's cars
+  @Get('agent/my-reviews')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('agent', 'agentadmin')
+  async getAgentReviews(@Request() req) {
+    return this.reviewsService.getAgentCarReviews(req.user.userId);
+  }
+
   // GET /api/reviews/car/:carId - Get reviews for car
   @Get('car/:carId')
   async findByCarId(@Param('carId', ParseIntPipe) carId: number) {
@@ -94,7 +102,7 @@ export class ReviewsController {
     return this.reviewsService.update(id, req.user.userId, updateReviewDto);
   }
 
-  // DELETE /api/reviews/:id - Delete review
+  // DELETE /api/reviews/:id - Delete review (users only)
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('user')
@@ -109,5 +117,17 @@ export class ReviewsController {
   @Roles('superadmin')
   async approveReview(@Param('id', ParseIntPipe) id: number) {
     return this.reviewsService.approveReview(id);
+  }
+
+  // PUT /api/reviews/:id/reply - Agent reply to review
+  @Put(':id/reply')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('agent', 'agentadmin')
+  async replyToReview(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req,
+    @Body() body: { reply: string },
+  ) {
+    return this.reviewsService.replyToReview(id, req.user.userId, body.reply);
   }
 }
