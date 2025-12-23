@@ -9,8 +9,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Rental } from './rental.entity';
 import { Car } from '../cars/car.entity';
+import { User } from '../users/user.entity';
 import { CreateRentalDto } from './dto/create-rental.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import PDFDocument from 'pdfkit';
 
 @Injectable()
 export class RentalsService {
@@ -19,6 +21,8 @@ export class RentalsService {
     private rentalRepository: Repository<Rental>,
     @InjectRepository(Car)
     private carRepository: Repository<Car>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private notificationsService: NotificationsService,
   ) {}
 
@@ -503,5 +507,125 @@ export class RentalsService {
     };
 
     return stats;
+  }
+
+  // Generate PDF for rental
+  async generateRentalPdf(rentalId: number, agentId: number): Promise<Buffer> {
+    const rental = await this.rentalRepository.findOne({
+      where: { rentalId },
+    });
+
+    if (!rental) {
+      throw new NotFoundException('Rental not found');
+    }
+
+    // Verify the agent owns this rental
+    if (rental.agentId !== agentId) {
+      throw new ForbiddenException('You can only generate PDFs for your own rentals');
+    }
+
+    // Fetch user and car data
+    const user = await this.userRepository.findOne({
+      where: { userId: rental.userId },
+    });
+
+    const car = await this.carRepository.findOne({
+      where: { carId: rental.carId },
+    });
+
+    // Calculate price per day
+    const startDate = new Date(rental.startDate);
+    const endDate = new Date(rental.endDate);
+    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24));
+    const pricePerDay = days > 0 ? parseFloat((rental.totalPrice.toString()) as any) / days : 0;
+
+    // Create PDF document
+    const doc = new PDFDocument();
+    const chunks: Buffer[] = [];
+
+    return new Promise((resolve, reject) => {
+      try {
+        doc.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
+
+        doc.on('end', () => {
+          resolve(Buffer.concat(chunks));
+        });
+
+        doc.on('error', (err: Error) => {
+          reject(err);
+        });
+
+        // Add content to PDF - simple text only approach
+        doc.fontSize(20);
+        doc.text('Rental Confirmation', { align: 'center' });
+        doc.moveDown();
+
+        // Rental details
+        doc.fontSize(12);
+        doc.text('Rental Details:', { underline: true });
+        doc.fontSize(11);
+        doc.text(`Rental ID: ${rental.rentalId}`);
+        doc.text(`Status: ${rental.status}`);
+        doc.text(`Request Date: ${new Date(rental.requestDate).toLocaleDateString()}`);
+        doc.moveDown();
+
+        // Customer information
+        doc.fontSize(12);
+        doc.text('Customer Information:', { underline: true });
+        doc.fontSize(11);
+        if (user) {
+          doc.text(`Name: ${user.firstName} ${user.lastName}`);
+          doc.text(`Email: ${user.email}`);
+          doc.text(`Phone: ${user.phone || 'N/A'}`);
+          doc.text(`City: ${user.city || 'N/A'}`);
+        } else {
+          doc.text('Customer information not available');
+        }
+        doc.moveDown();
+
+        // Car information
+        doc.fontSize(12);
+        doc.text('Car Information:', { underline: true });
+        doc.fontSize(11);
+        if (car) {
+          doc.text(`Brand: ${car.brand}`);
+          doc.text(`Model: ${car.model}`);
+          doc.text(`License Plate: ${car.licensePlate}`);
+          doc.text(`Year: ${car.year}`);
+        } else {
+          doc.text('Car information not available');
+        }
+        doc.moveDown();
+
+        // Rental period
+        doc.fontSize(12);
+        doc.text('Rental Period:', { underline: true });
+        doc.fontSize(11);
+        doc.text(`Start Date: ${rental.startDate}`);
+        doc.text(`End Date: ${rental.endDate}`);
+        doc.text(`Number of Days: ${days}`);
+        doc.moveDown();
+
+        // Pricing
+        doc.fontSize(12);
+        doc.text('Pricing:', { underline: true });
+        doc.fontSize(11);
+        doc.text(`Price per Day: €${pricePerDay.toFixed(2)}`);
+        doc.text(`Guarantee Amount: €${parseFloat(rental.guaranteeAmount.toString()).toFixed(2)}`);
+        doc.text(`Total Price: €${parseFloat(rental.totalPrice.toString()).toFixed(2)}`);
+        doc.moveDown();
+
+        // Footer
+        doc.fontSize(10);
+        doc.text('This is an official rental confirmation document.', { align: 'center' });
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 }

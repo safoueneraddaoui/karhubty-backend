@@ -4,11 +4,12 @@ import { RentalsService } from './rentals.service';
 import { RentalsController } from './rentals.controller';
 import { Rental } from './rental.entity';
 import { Car } from '../cars/car.entity';
+import { User } from '../users/user.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Rental, Car]),
+    TypeOrmModule.forFeature([Rental, Car, User]),
     NotificationsModule,
   ],
   providers: [RentalsService],

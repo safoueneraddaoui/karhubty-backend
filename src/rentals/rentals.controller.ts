@@ -9,6 +9,7 @@ import {
   Request,
   ParseIntPipe,
   Query,
+  Res,
 } from '@nestjs/common';
 import { RentalsService } from './rentals.service';
 import { CreateRentalDto } from './dto/create-rental.dto';
@@ -102,6 +103,31 @@ export class RentalsController {
     }
     // If admin, get all stats
     return this.rentalsService.getStats();
+  }
+
+  // GET /api/rentals/:id/generate-pdf - Generate PDF for rental (Agent only)
+  @Get(':id/generate-pdf')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('agent')
+  async generatePdf(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req,
+    @Res() res,
+  ) {
+    try {
+      const pdfBuffer = await this.rentalsService.generateRentalPdf(id, req.user.userId);
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="rental-${id}.pdf"`,
+      });
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      res.status(500).json({
+        statusCode: 500,
+        message: error instanceof Error ? error.message : 'Failed to generate PDF',
+      });
+    }
   }
 
   // GET /api/rentals/:id - Get rental by ID
