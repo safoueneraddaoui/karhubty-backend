@@ -187,6 +187,19 @@ export class CarsController {
       body: updateCarDto,
       files: files?.map(f => ({ name: f.filename, size: f.size, mimetype: f.mimetype })),
     });
+    
+    // Check if agent is in verification status
+    if (req.user.role === 'agent') {
+      const agent = await this.carsService.getAgentStatus(req.user.userId);
+      if (agent && agent.accountStatus === 'in_verification') {
+        return {
+          success: false,
+          message: 'You cannot edit cars while your account is in verification. Please upload the requested documents first.',
+          statusCode: 403,
+        };
+      }
+    }
+    
     // Service will verify ownership
     return this.carsService.update(
       id,

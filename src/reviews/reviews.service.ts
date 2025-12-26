@@ -196,8 +196,8 @@ export class ReviewsService {
     return this.reviewRepository.save(review);
   }
 
-  // Get reviews for agent's cars
-  async getAgentCarReviews(agentId: number): Promise<Review[]> {
+  // Get agent car reviews with user info
+  async getAgentCarReviews(agentId: number): Promise<any[]> {
     const cars = await this.carRepository.find({ where: { agentId } });
     const carIds = cars.map((c) => c.carId);
 
@@ -205,11 +205,29 @@ export class ReviewsService {
       return [];
     }
 
-    return this.reviewRepository
+    const reviews = await this.reviewRepository
       .createQueryBuilder('review')
+      .leftJoinAndSelect('review.user', 'user')
       .where('review.carId IN (:...carIds)', { carIds })
       .andWhere('review.isApproved = :approved', { approved: true })
       .orderBy('review.reviewDate', 'DESC')
       .getMany();
+
+    // Map the reviews to include customer name
+    return reviews.map(review => ({
+      reviewId: review.reviewId,
+      userId: review.userId,
+      carId: review.carId,
+      rentalId: review.rentalId,
+      rating: review.rating,
+      comment: review.comment,
+      agentReply: review.agentReply,
+      reviewDate: review.reviewDate,
+      replyDate: review.replyDate,
+      isApproved: review.isApproved,
+      updatedAt: review.updatedAt,
+      customerName: review.user ? `${review.user.firstName} ${review.user.lastName}` : 'Anonymous',
+      customerEmail: review.user?.email,
+    }));
   }
 }

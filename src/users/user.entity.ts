@@ -7,6 +7,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
+import { Review } from '../reviews/review.entity';
 
 @Entity('users')
 export class User {
@@ -41,16 +42,27 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ default: false })
+  isEmailVerified: boolean;
+
+  @Column({ nullable: true })
+  emailVerificationToken: string;
+
+  @Column({ nullable: true })
+  emailVerificationTokenExpires: Date;
+
+  @Column({ nullable: true })
+  passwordResetToken: string;
+
+  @Column({ nullable: true })
+  passwordResetTokenExpires: Date;
+
   @Column({ default: 'user' })
   role: string; // 'user', 'agent', 'superadmin'
 
   @UpdateDateColumn()
   updatedAt: Date;
 
-  // Relations will be added later
-  // @OneToMany(() => Rental, (rental) => rental.user)
-  // rentals: Rental[];
-
-  // @OneToMany(() => Review, (review) => review.user)
-  // reviews: Review[];
+  @OneToMany(() => Review, (review) => review.user)
+  reviews: Review[];
 }

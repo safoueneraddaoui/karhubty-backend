@@ -10,8 +10,11 @@ COPY package*.json ./
 RUN npm ci && \
     npm cache clean --force
 
+# Copy TypeScript configuration
+COPY tsconfig.json tsconfig.build.json nest-cli.json ./
+
 # Copy application code
-COPY . .
+COPY src ./src
 
 # Build TypeScript
 RUN npm run build
@@ -32,7 +35,6 @@ RUN addgroup -g 1001 -S nodejs && \
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/.env.example ./.env.example
 
 # Create uploads directory with proper permissions
 RUN mkdir -p /app/uploads && \
@@ -46,10 +48,4 @@ EXPOSE 8080
 
 # Use dumb-init to handle signals
 ENTRYPOINT ["dumb-init", "--"]
-
-# Start application
 CMD ["node", "dist/main.js"]
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:8080/api', (r) => {if (r.statusCode !== 404) throw new Error(r.statusCode)})"

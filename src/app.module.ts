@@ -11,13 +11,15 @@ import { AgentsModule } from './agents/agents.module';
 import { AdminModule } from './admin/admin.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DocumentsModule } from './documents/documents.module';
+import { User } from './users/user.entity';
 
 @Module({
   imports: [
     // Configuration Module (loads .env)
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
     }),
 
     // Database Module
@@ -30,7 +32,7 @@ import { NotificationsModule } from './notifications/notifications.module';
       database: process.env.DB_DATABASE || 'karhubty',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true, // ⚠️ Set to false in production!
-      logging: true,
+      logging: false,
     }),
 
     // Feature Modules
@@ -42,6 +44,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     AdminModule,
     ReviewsModule,
     NotificationsModule,
+    DocumentsModule,
+    TypeOrmModule.forFeature([User]),
   ],
   controllers: [AppController],
   providers: [AppService],

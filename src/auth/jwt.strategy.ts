@@ -27,6 +27,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Return appropriate ID field based on role
     if (payload.role === 'agent') {
       return {
+        sub: payload.sub,
         userId: payload.sub, // For agents, this is actually their agentId
         agentId: payload.sub,
         email: payload.email,
@@ -35,6 +36,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     return {
+      sub: payload.sub,
       userId: payload.sub,
       email: payload.email,
       role: payload.role,

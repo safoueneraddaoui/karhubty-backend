@@ -2,14 +2,18 @@ import {
   Controller,
   Get,
   Put,
+  Post,
   Delete,
   Param,
+  Body,
   UseGuards,
   Request,
   ParseIntPipe,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
@@ -69,5 +73,18 @@ export class NotificationsController {
   async deleteNotification(@Param('id', ParseIntPipe) id: number) {
     await this.notificationsService.delete(id);
     return { success: true, message: 'Notification deleted' };
+  }
+
+  // POST /api/notifications/send-document-request - Send document request email to agent
+  @Post('send-document-request')
+  @UseGuards(RolesGuard)
+  @Roles('superadmin')
+  async sendDocumentRequest(@Body() body: {
+    agentEmail: string;
+    agentName: string;
+    requiredDocuments: string;
+    message?: string;
+  }) {
+    return this.notificationsService.sendDocumentRequestEmail(body);
   }
 }

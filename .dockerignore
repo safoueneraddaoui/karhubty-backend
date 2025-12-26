@@ -12,8 +12,6 @@ coverage
 .eslintrc.json
 .prettierrc
 jest.config.js
-tsconfig.json
-tsconfig.build.json
 test
 .vscode
 .idea

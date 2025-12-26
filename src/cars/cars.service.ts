@@ -28,6 +28,14 @@ export class CarsService {
     private agentRepository: Repository<Agent>,
   ) {}
 
+  // Get agent status
+  async getAgentStatus(userId: number): Promise<Agent | null> {
+    // userId is actually agentId when the user is an agent
+    return await this.agentRepository.findOne({
+      where: { agentId: userId },
+    });
+  }
+
   // Create new car with images
   async create(
     agentId: number,
@@ -39,6 +47,14 @@ export class CarsService {
       createCarDto,
       uploadedFilesCount: uploadedFiles?.length || 0,
     });
+
+    // Check if agent is in verification status
+    const agent = await this.getAgentStatus(agentId);
+    if (agent && agent.accountStatus === 'in_verification') {
+      throw new ForbiddenException(
+        'You cannot add cars while your account is in verification. Please upload the requested documents first.',
+      );
+    }
 
     // Check if license plate already exists
     const existingCar = await this.carRepository.findOne({

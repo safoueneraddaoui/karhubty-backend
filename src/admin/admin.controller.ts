@@ -2,10 +2,12 @@ import {
   Controller,
   Get,
   Put,
+  Delete,
   Param,
   UseGuards,
   ParseIntPipe,
   Query,
+  Body,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -67,5 +69,32 @@ export class AdminController {
   @Get('revenue')
   async getRevenueStats() {
     return this.adminService.getRevenueStats();
+  }
+
+  // Get all users
+  @Get('users')
+  async getAllUsers() {
+    return this.adminService.getAllUsers();
+  }
+
+  // Delete user by ID
+  @Delete('users/:userId')
+  async deleteUser(@Param('userId', ParseIntPipe) userId: number) {
+    return this.adminService.deleteUser(userId);
+  }
+
+  // Toggle user status (activate/deactivate)
+  @Put('users/:userId/status')
+  async toggleUserStatus(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body() body: { isActive: boolean },
+  ) {
+    return this.adminService.toggleUserStatus(userId, body.isActive);
+  }
+
+  // Delete agent by ID
+  @Delete('agents/:agentId')
+  async deleteAgent(@Param('agentId', ParseIntPipe) agentId: number) {
+    return this.adminService.deleteAgent(agentId);
   }
 }

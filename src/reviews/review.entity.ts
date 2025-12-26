@@ -8,6 +8,7 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
+import { User } from '../users/user.entity';
 
 @Entity('reviews')
 export class Review {
@@ -45,9 +46,9 @@ export class Review {
   updatedAt: Date;
 
   // Relations
-  // @ManyToOne(() => User, (user) => user.reviews)
-  // @JoinColumn({ name: 'userId' })
-  // user: User;
+  @ManyToOne(() => User, (user) => user.reviews)
+  @JoinColumn({ name: 'userId' })
+  user: User;
 
   // @ManyToOne(() => Car, (car) => car.reviews)
   // @JoinColumn({ name: 'carId' })
